@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express, { Express, Request, Response, NextFunction, Router, RequestHandler } from "express";
 import bodyParser from "body-parser";
 import userRoutes from "./routes/userRoutes";
+import branchRoutes from "./routes/branchRoutes";
+import itemRoutes from "./routes/itemRoutes";
 import authRoutes from "./routes/authRoutes";
 import { authenticateToken } from "./middleware/auth";
 import './config/firebase-admin'; // Initialize Firebase Admin SDK
@@ -21,6 +23,8 @@ apiRouter.use(authenticateToken as RequestHandler);
 
 // Mount all API routes under /api with authentication
 apiRouter.use("/users", userRoutes);
+apiRouter.use("/branches", branchRoutes);
+apiRouter.use("/items", itemRoutes);
 
 // Mount the protected API router
 app.use("/api", apiRouter);

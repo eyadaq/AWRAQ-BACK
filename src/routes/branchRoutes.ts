@@ -1,10 +1,10 @@
 import { Router, RequestHandler, Request, Response, NextFunction } from "express";
 import { 
-  createUserHandler, 
-  deleteUserHandler, 
-  listUsersHandler, 
-  updateUserHandler 
-} from "../controllers/userController";
+  createBranchHandler, 
+  listBranchesHandler, 
+  updateBranchHandler, 
+  deleteBranchHandler 
+} from "../controllers/branchController";
 import { authenticateToken } from "../middleware/auth";
 
 const router = Router();
@@ -17,29 +17,14 @@ const asyncHandler = <P, ResBody, ReqBody, ReqQuery>(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-// Public routes (no authentication required)
-router.post(
-  "/", 
-  asyncHandler(createUserHandler)
-);
 
 // Apply authentication middleware to all following routes
 router.use(authenticateToken as RequestHandler);
 
-// Protected routes (require authentication)
-router.get(
-  "/", 
-  asyncHandler(listUsersHandler)
-);
 
-router.put(
-  "/:uid", 
-  asyncHandler(updateUserHandler)
-);
-
-router.delete(
-  "/:uid", 
-  asyncHandler<{ uid: string }, any, any, any>(deleteUserHandler)
-);
+router.get("/", asyncHandler(listBranchesHandler));
+router.post("/", asyncHandler(createBranchHandler));
+router.put("/:id", asyncHandler(updateBranchHandler));
+router.delete("/:id", asyncHandler(deleteBranchHandler));
 
 export default router;

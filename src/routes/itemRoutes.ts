@@ -1,10 +1,9 @@
 import { Router, RequestHandler, Request, Response, NextFunction } from "express";
 import { 
-  createUserHandler, 
-  deleteUserHandler, 
-  listUsersHandler, 
-  updateUserHandler 
-} from "../controllers/userController";
+  listItemesHandler, 
+  createItemHandler,
+  getItemByIdHandler
+} from "../controllers/itemController";
 import { authenticateToken } from "../middleware/auth";
 
 const router = Router();
@@ -17,29 +16,14 @@ const asyncHandler = <P, ResBody, ReqBody, ReqQuery>(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-// Public routes (no authentication required)
-router.post(
-  "/", 
-  asyncHandler(createUserHandler)
-);
 
 // Apply authentication middleware to all following routes
 router.use(authenticateToken as RequestHandler);
 
-// Protected routes (require authentication)
-router.get(
-  "/", 
-  asyncHandler(listUsersHandler)
-);
 
-router.put(
-  "/:uid", 
-  asyncHandler(updateUserHandler)
-);
-
-router.delete(
-  "/:uid", 
-  asyncHandler<{ uid: string }, any, any, any>(deleteUserHandler)
-);
+router.get("/", asyncHandler(listItemesHandler));
+router.post("/", asyncHandler(createItemHandler));
+router.get("/:id", asyncHandler(getItemByIdHandler));
+// router.delete("/:id", asyncHandler(deleteItemHandler));
 
 export default router;
