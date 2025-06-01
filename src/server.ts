@@ -8,12 +8,20 @@ import invoiceRoutes from "./routes/invoiceRoutes";
 import authRoutes from "./routes/authRoutes";
 import { authenticateToken } from "./middleware/auth";
 import './config/firebase-admin'; // Initialize Firebase Admin SDK
+import cors from 'cors';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(bodyParser.json());
+
+app.use(cors({
+  origin: 'http://localhost:3000', // Change this to your frontend URL in prod
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // Optional: only needed if you're using cookies or auth headers
+}));
 
 // Public routes (no authentication required)
 app.use("/api/auth", authRoutes); // Login route is public
