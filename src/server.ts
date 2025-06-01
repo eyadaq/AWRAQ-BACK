@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import userRoutes from "./routes/userRoutes";
 import branchRoutes from "./routes/branchRoutes";
 import itemRoutes from "./routes/itemRoutes";
+import invoiceRoutes from "./routes/invoiceRoutes";
 import authRoutes from "./routes/authRoutes";
 import { authenticateToken } from "./middleware/auth";
 import './config/firebase-admin'; // Initialize Firebase Admin SDK
@@ -25,6 +26,7 @@ apiRouter.use(authenticateToken as RequestHandler);
 apiRouter.use("/users", userRoutes);
 apiRouter.use("/branches", branchRoutes);
 apiRouter.use("/items", itemRoutes);
+apiRouter.use("/invoices", invoiceRoutes);
 
 // Mount the protected API router
 app.use("/api", apiRouter);

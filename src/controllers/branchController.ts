@@ -43,6 +43,7 @@ export async function createBranchHandler (
     await db.collection("branches").doc().set({
       name,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      isDelete: false
     });
     res.status(201).json({ message: "Branch created", name });
   } catch (error: any) {
@@ -147,7 +148,10 @@ export async function deleteBranchHandler(
 	  res.status(404).json({ error: "Branch not found" });
     return ;
 	}
-    db.collection("branches").doc(docId).delete()
+    db.collection("branches").doc(docId).update({
+      isDelete: true,
+      deletedAt: admin.firestore.FieldValue.serverTimestamp() as any,
+  });
 
     res.status(201).json({ message: "Branch deleted", name });
   } catch (error: any) {
