@@ -5,6 +5,8 @@ import db from "../firebs";
 interface UserData {
   uid: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: string;
   branchId: string;
   isDelete: boolean;
@@ -24,41 +26,41 @@ interface CreateUserRequest extends AuthenticatedRequest {
   body: {
     email: string;
     password: string;
+    firstName: string;
+    lastName: string;
     role: string;
     branchId: string;
   };
 }
 
-// Create a new user (public endpoint)
 export const createUserHandler = async (
   req: CreateUserRequest,
   res: Response
 ): Promise<void> => {
-  const { email, password, role, branchId } = req.body;
-  if (!email || !password || !role || !branchId) {
+  const { email, password, firstName, lastName, role, branchId } = req.body;
+  if (!email || !password || !firstName || !lastName || !role || !branchId) {
     res.status(400).json({ error: "Missing required fields" });
     return;
   }
 
-  // Only allow admin creation by authenticated admin users
   if (role === 'admin' && (!req.user || req.user.role !== 'admin')) {
     res.status(403).json({ error: 'Insufficient permissions to create admin user' });
     return;
   }
 
   try {
-    // Create user in Firebase Auth
-    const userRecord = await admin.auth().createUser({
+      const userRecord = await admin.auth().createUser({
       email,
       password,
       emailVerified: false,
       disabled: false
     });
 
-    // Create user document in Firestore
     const userData = {
       uid: userRecord.uid,
       email,
+      firstName,
+      lastName,
       role,
       branchId,
       isDelete: false,
@@ -67,12 +69,13 @@ export const createUserHandler = async (
 
     await db.collection('users').doc(userRecord.uid).set(userData);
 
-    // Set custom claims for role-based access control
     await admin.auth().setCustomUserClaims(userRecord.uid, { role, branchId });
 
     res.status(201).json({
       uid: userRecord.uid,
       email: userRecord.email,
+      firstName,
+      lastName,
       role,
       branchId
     });
@@ -84,7 +87,6 @@ export const createUserHandler = async (
       stack: error.stack
     });
     
-    // Clean up Firebase Auth user if it was created but Firestore operation failed
     if (req.body.email) {
       try {
         const userRecord = await admin.auth().getUserByEmail(req.body.email);

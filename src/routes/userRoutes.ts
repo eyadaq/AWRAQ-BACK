@@ -5,7 +5,7 @@ import {
   listUsersHandler, 
   updateUserHandler 
 } from "../controllers/userController";
-import { authenticateToken } from "../middleware/auth";
+import { authenticateToken, requireAdmin } from "../middleware/auth";
 
 const router = Router();
 
@@ -17,14 +17,15 @@ const asyncHandler = <P, ResBody, ReqBody, ReqQuery>(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-// Public routes (no authentication required)
+// Apply authentication middleware to all routes
+router.use(authenticateToken as RequestHandler);
+
+// Admin-only routes
 router.post(
   "/", 
+  requireAdmin as RequestHandler,
   asyncHandler(createUserHandler)
 );
-
-// Apply authentication middleware to all following routes
-router.use(authenticateToken as RequestHandler);
 
 // Protected routes (require authentication)
 router.get(
