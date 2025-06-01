@@ -1,14 +1,7 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import admin from "firebase-admin";
 import db from "../firebs";
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    role: string;
-    branchId: string;
-  };
-}
+import { AuthenticatedRequest } from "../utils/interfaces";
 
 export async function createBranchHandler (
   req: AuthenticatedRequest,
@@ -68,7 +61,7 @@ export const listBranchesHandler = async (
     const snapshot = await db.collection("branches").get();
 
     const branches = snapshot.docs.map(doc => ({
-      id: doc.id, // Firestore-generated doc ID
+      id: doc.id,
       ...doc.data()
     }));
 

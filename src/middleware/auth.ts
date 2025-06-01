@@ -8,6 +8,7 @@ declare global {
         uid: string;
         role: string;
         branchId: string;
+        firstName: string;
       };
     }
   }
@@ -34,6 +35,7 @@ export const authenticateToken: RequestHandler = (req, res, next) => {
         uid: decodedToken.uid,
         role: decodedToken.role,
         branchId: decodedToken.branchId || "",
+        firstName: decodedToken.firstName || "",
       };
       
       next();

@@ -1,14 +1,8 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import admin from "firebase-admin";
 import db from "../firebs";
+import { AuthenticatedRequest } from "../utils/interfaces";
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    role: string;
-    branchId: string;
-  };
-}
 
 export async function createItemHandler (
   req: AuthenticatedRequest,

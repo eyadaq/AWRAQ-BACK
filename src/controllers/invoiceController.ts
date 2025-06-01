@@ -1,14 +1,7 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import admin from "firebase-admin";
 import db from "../firebs";
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    role: string;
-    branchId: string;
-  };
-}
+import { AuthenticatedRequest } from "../utils/interfaces";
 
 export const createInvoiceHandler = async (
   req: AuthenticatedRequest,
@@ -21,8 +14,8 @@ export const createInvoiceHandler = async (
       return;
     }
     
-    const { custumerName, custumerPhone, items, totalPrice, goldPrice } = req.body;
-    if (!custumerName || !custumerPhone || !items || !totalPrice || !goldPrice) {
+    const { custumerName, custumerPhone, items, totalPrice, goldPrice, totalProfits } = req.body;
+    if (!custumerName || !custumerPhone || !items || !totalPrice || !goldPrice || !totalProfits) {
       res.status(400).json({ error: "Missing required fields" });
       return;
     }
@@ -35,11 +28,12 @@ export const createInvoiceHandler = async (
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       items,
       totalPrice,
+      totalProfits,
       goldPrice
     };
     
     const invoiceRef = await db.collection("invoices").add(newInvoice);
-    
+    // firstName: requester.firstName
     res.status(201).json({ message: "Invoice created successfully", id: invoiceRef.id });
   } catch (error: any) {
     console.error("Error creating invoice:", error);
