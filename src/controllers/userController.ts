@@ -38,13 +38,33 @@ export const createUserHandler = async (
   res: Response
 ): Promise<void> => {
   const { email, password, firstName, lastName, role, branchId } = req.body;
+  const requester = req.user;
+  
+  if (!requester) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   if (!email || !password || !firstName || !lastName || !role || !branchId) {
     res.status(400).json({ error: "Missing required fields" });
     return;
   }
 
-  if (role === 'admin' && (!req.user || req.user.role !== 'admin')) {
+  // Only admins can create admin users
+  if (role === 'admin' && requester.role !== 'admin') {
     res.status(403).json({ error: 'Insufficient permissions to create admin user' });
+    return;
+  }
+
+  // Managers can only create users in their own branch
+  if (requester.role === 'manager' && branchId !== requester.branchId) {
+    res.status(403).json({ error: 'Can only create users in your own branch' });
+    return;
+  }
+
+  // Sales cannot create users
+  if (requester.role === 'sales') {
+    res.status(403).json({ error: 'Insufficient permissions' });
     return;
   }
 
@@ -154,6 +174,12 @@ export const deleteUserHandler = async (
   }
 
   try {
+    // Don't allow deleting yourself
+    if (uid === requester.uid) {
+      res.status(400).json({ error: "Cannot delete your own account" });
+      return;
+    }
+
     const userDoc = await db.collection("users").doc(uid).get();
 
     if (!userDoc.exists) {
@@ -163,14 +189,36 @@ export const deleteUserHandler = async (
 
     const userData = userDoc.data() as UserData;
 
-    if (requester.role === "sales") {
-      res.status(403).json({ error: "Sales cannot delete users" });
+    // Check permissions
+    if (requester.role === 'sales') {
+      res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
 
-    if (requester.role === "manager" && userData.branchId !== requester.branchId) {
-      res.status(403).json({ error: "Managers can only delete users in their branch" });
-      return;
+    // Managers can only delete users in their branch
+    if (requester.role === 'manager') {
+      if (userData.branchId !== requester.branchId) {
+        res.status(403).json({ error: 'Can only delete users in your branch' });
+        return;
+      }
+      // Prevent managers from deleting admins
+      if (userData.role === 'admin') {
+        res.status(403).json({ error: 'Cannot delete admin users' });
+        return;
+      }
+    }
+
+    // Prevent deleting the last admin
+    if (userData.role === 'admin' && requester.role === 'admin') {
+      const admins = await db.collection('users')
+        .where('role', '==', 'admin')
+        .where('isDelete', '==', false)
+        .get();
+      
+      if (admins.size <= 1) {
+        res.status(400).json({ error: 'Cannot delete the last admin' });
+        return;
+      }
     }
 
     await db.collection("users").doc(uid).update({
@@ -185,6 +233,7 @@ export const deleteUserHandler = async (
 };
 
 // List all users (protected endpoint)
+// Admin can see all users, manager can see users in their branch only
 export const listUsersHandler = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -195,16 +244,20 @@ export const listUsersHandler = async (
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  if (requester.role === "sales") {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
 
   try {
     let usersRef = db.collection("users").where("isDelete", "==", false);
+    
+    // Managers can only see users in their branch
     if (requester.role === "manager") {
       usersRef = usersRef.where("branchId", "==", requester.branchId);
     }
+    // Sales cannot list users
+    else if (requester.role === "sales") {
+      res.status(403).json({ error: "Insufficient permissions" });
+      return;
+    }
+    // Admin can see all users (no additional filters needed)
 
     const snapshot = await usersRef.get();
     const users = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
@@ -229,7 +282,7 @@ interface UpdateUserRequest extends AuthenticatedRequest {
 export const updateUserHandler = async (
   req: UpdateUserRequest,
   res: Response,
-  //next: NextFunction
+  next: NextFunction
 ): Promise<void> => {
   const { uid } = req.params;
   const { role, branchId } = req.body;
@@ -246,6 +299,7 @@ export const updateUserHandler = async (
   }
 
   try {
+    // Get the target user's data
     const userRef = db.collection("users").doc(uid);
     const userDoc = await userRef.get();
 
@@ -254,48 +308,68 @@ export const updateUserHandler = async (
       return;
     }
 
-    const targetUser = userDoc.data() as UserData | undefined;
-    if (!targetUser) {
-      res.status(404).json({ error: "User data is missing" });
+    const targetUser = userDoc.data() as UserData;
+
+    // Check permissions
+    if (requester.role === 'sales') {
+      res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
 
-    if (requester.role === "sales") {
-      res.status(403).json({ error: "Sales cannot update users" });
-      return;
-    }
-
-    if (requester.role === "manager") {
-      if (targetUser.role !== "sales") {
-        res.status(403).json({ error: "Managers can only update sales users" });
-        return;
-      }
-
+    // Managers can only update users in their branch
+    if (requester.role === 'manager') {
       if (targetUser.branchId !== requester.branchId) {
-        res.status(403).json({ error: "Managers can only update users in their branch" });
+        res.status(403).json({ error: 'Can only update users in your branch' });
         return;
       }
-
+      // Prevent managers from changing roles to admin
+      if (role === 'admin') {
+        res.status(403).json({ error: 'Cannot assign admin role' });
+        return;
+      }
+      // Prevent moving users to other branches
       if (branchId && branchId !== requester.branchId) {
-        res.status(403).json({ error: "Managers cannot move users to another branch" });
+        res.status(403).json({ error: 'Cannot move users to other branches' });
         return;
       }
     }
 
+    // Admins can do anything, but prevent demoting the last admin
+    if (requester.role === 'admin' && targetUser.role === 'admin' && role !== 'admin') {
+      const admins = await db.collection('users')
+        .where('role', '==', 'admin')
+        .where('isDelete', '==', false)
+        .get();
+      
+      if (admins.size <= 1) {
+        res.status(400).json({ error: 'Cannot remove the last admin' });
+        return;
+      }
+    }
+
+    // Proceed with the update
     const updateData: Partial<UserData> = {};
     if (role) updateData.role = role;
     if (branchId) updateData.branchId = branchId;
 
     await userRef.update(updateData);
 
-    await admin.auth().setCustomUserClaims(uid, {
-      role: role || targetUser.role,
-      branchId: branchId || targetUser.branchId,
-    });
+    // Update custom claims if role changed
+    if (role) {
+      await admin.auth().setCustomUserClaims(uid, {
+        role,
+        branchId: branchId || targetUser.branchId
+      });
+    } else if (branchId) {
+      await admin.auth().setCustomUserClaims(uid, {
+        role: targetUser.role,
+        branchId
+      });
+    }
 
-    res.status(200).json({ message: "User updated" });
+    res.status(200).json({ message: 'User updated successfully' });
   } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error updating user:', error);
+    next(error);
   }
 };
