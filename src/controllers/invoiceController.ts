@@ -3,6 +3,7 @@ import admin from "firebase-admin";
 import db from "../firebs";
 import { AuthenticatedRequest } from "../utils/interfaces";
 import PDFDocument from "pdfkit";
+import ExcelJS from "exceljs";
 
 export const getInvoicePdf = async (
   req: AuthenticatedRequest,
@@ -71,15 +72,9 @@ export const createInvoiceHandler = async (
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    // "custumerName": "aaa",
-    //  "custumerPhone": "aaa",
-    //  "items": "aaa",
-    //  "totalPrice": "aaa",
-    //  "goldPrice": "aaa",
-    //  "totalProfits": "aaa",
 
-    const { custumerName, custumerPhone, items, totalPrice, goldPrice, totalProfits } = req.body;
-    if (!custumerName || !custumerPhone || !items || !totalPrice || !goldPrice || !totalProfits) {
+    const { customerName, customerPhone, items, totalPrice, goldPrice, totalProfits } = req.body;
+    if (!customerName || !customerPhone || !items || !totalPrice || !goldPrice || !totalProfits) {
       res.status(400).json({ error: "Missing required fields" });
       return;
     }
@@ -87,8 +82,8 @@ export const createInvoiceHandler = async (
     const newInvoice = {
       branchId: requester.branchId,
       userId: requester.uid,
-      custumerName,
-      custumerPhone,
+      customerName,
+      customerPhone,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       items,
       totalPrice,
@@ -97,9 +92,7 @@ export const createInvoiceHandler = async (
     };
     
     const invoiceRef = await db.collection("invoices").add(newInvoice);
-    // firstName: requester.firstName
     res.status(201).json({ message: "Invoice created successfully", id: invoiceRef.id });
-    // getInvoicePdf(res, invoiceRef.id);
   } catch (error: any) {
     console.error("Error creating invoice:", error);
     res.status(500).json({ error: error.message });
@@ -171,6 +164,75 @@ export const getInvoiceByIdHandler = async (
     res.status(200).json(invoice);
   } catch (error: any) {
     console.error("Error fetching item:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const exportInvoicesToExcelHandler = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const requester = req.user;
+    if (!requester) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const branchId = requester.branchId;
+    if (!branchId) {
+      res.status(400).json({ error: "Missing branchId" });
+      return;
+    }
+
+    const snapshot = await db.collection("invoices")
+      .where("branchId", "==", branchId)
+      .get();
+
+    if (snapshot.empty) {
+      res.status(404).json({ error: "No invoices found for this branch" });
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Invoices");
+
+    // Define headers
+    sheet.columns = [
+      { header: "Invoice ID", key: "id", width: 20 },
+      { header: "User ID", key: "userId", width: 20 },
+      { header: "Customer Name", key: "customerName", width: 25 },
+      { header: "Customer Phone", key: "customerPhone", width: 20 },
+      { header: "Created At", key: "createdAt", width: 25 },
+      { header: "Total Price", key: "totalPrice", width: 15 },
+      { header: "Total Profits", key: "totalProfits", width: 15 },
+      { header: "Items", key: "items", width: 50 },
+    ];
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const items = Array.isArray(data.items)
+        ? data.items.map((item: any, idx: number) => {
+            return `#${idx + 1} Name: ${item.name}, Qty: ${item.quantity}, Price: ${item.price}, Profit: ${item.profit}`;
+          }).join("\n")
+        : "No items";
+
+      sheet.addRow({
+        id: doc.id,
+        userId: data.userId || "",
+        customerName: data.customerName || "",
+        customerPhone: data.customerPhone || "",
+        createdAt: data.createdAt?.toDate().toLocaleString() || "",
+        totalPrice: data.totalPrice || 0,
+        totalProfits: data.totalProfits || 0,
+        items: items,
+      });
+    });
+
+    // Set headers
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=invoices-${branchId}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error: any) {
+    console.error("Error generating Excel:", error);
     res.status(500).json({ error: error.message });
   }
 };
