@@ -3,6 +3,7 @@
 
 # Firebase service account key
 src/serviceAccountKey.json
+serviceAccountKey.json
 
 # Node.js
 node_modules/
