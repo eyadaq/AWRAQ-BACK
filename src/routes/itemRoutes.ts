@@ -3,7 +3,8 @@ import {
   listItemesHandler, 
   createItemHandler,
   getItemByIdHandler,
-  deleteItemHandler
+  deleteItemHandler,
+  updateItemHandler
 } from "../controllers/itemController";
 import { authenticateToken } from "../middleware/auth";
 
@@ -25,6 +26,7 @@ router.use(authenticateToken as RequestHandler);
 router.get("/", asyncHandler(listItemesHandler));
 router.post("/", asyncHandler(createItemHandler));
 router.get("/:id", asyncHandler(getItemByIdHandler));
+router.put('/:id', asyncHandler(updateItemHandler));
 router.delete("/:id", asyncHandler(deleteItemHandler));
 
 export default router;

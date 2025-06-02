@@ -1,8 +1,14 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import admin from "firebase-admin";
 import db from "../firebs";
-import { AuthenticatedRequest } from "../utils/interfaces";
 
+interface AuthenticatedRequest extends Request {
+  user?: {
+    uid: string;
+    role: string;
+    branchId: string;
+  };
+}
 
 export async function createItemHandler (
   req: AuthenticatedRequest,
@@ -140,56 +146,56 @@ export const getItemByIdHandler = async (
   }
 }
 
-// export const updateItemHandler = async (
-//   req: AuthenticatedRequest,
-//   res: Response
-// ): Promise<void> => {
-//   try {
-//     const requester = req.user;
-//     if (!requester) {
-//       res.status(401).json({ error: "Unauthorized" });
-//       return;
-//     }
+ export const updateItemHandler = async (
+   req: AuthenticatedRequest,
+   res: Response
+ ): Promise<void> => {
+   try {
+     const requester = req.user;
+     if (!requester) {
+       res.status(401).json({ error: "Unauthorized" });
+       return;
+     }
 
-//     // The item id is provided as a route parameter, e.g., PUT /items/:id
-//     const { id } = req.params;
-//     if (!id) {
-//       res.status(400).json({ error: "Missing item id" });
-//       return;
-//     }
+     // The item id is provided as a route parameter, e.g., PUT /items/:id
+     const { id } = req.params;
+     if (!id) {
+       res.status(400).json({ error: "Missing item id" });
+       return;
+     }
 
-//     // Get the update data from the request body
-//     // Remove the id if it's accidentally included in the body
-//     const updateData = { ...req.body };
-//     delete updateData.id;
+     // Get the update data from the request body
+     // Remove the id if it's accidentally included in the body
+     const updateData = { ...req.body };
+     delete updateData.id;
     
-//     // Get the reference to the item document
-//     const docRef = db.collection("items").doc(id);
-//     const snapshot = await docRef.get();
-//     if (!snapshot.exists) {
-//       res.status(404).json({ error: "Item doesn't exist" });
-//       return;
-//     }
+     // Get the reference to the item document
+     const docRef = db.collection("items").doc(id);
+     const snapshot = await docRef.get();
+     if (!snapshot.exists) {
+       res.status(404).json({ error: "Item doesn't exist" });
+       return;
+     }
 
-//     const itemData = snapshot.data();
-//     // Check if requester is allowed to update this item (branchId matching unless admin)
-//     if (requester.role !== "admin" && requester.branchId !== itemData?.branchId) {
-//       res.status(403).json({ error: "Forbidden" });
-//       return;
-//     }
+     const itemData = snapshot.data();
+     // Check if requester is allowed to update this item (branchId matching unless admin)
+     if (requester.role !== "admin" && requester.branchId !== itemData?.branchId) {
+       res.status(403).json({ error: "Forbidden" });
+       return;
+     }
 
-//     // Add an update timestamp if needed
-//     updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+     // Add an update timestamp if needed
+     updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
-//     // Update the document with the provided fields
-//     await docRef.update(updateData);
+     // Update the document with the provided fields
+     await docRef.update(updateData);
     
-//     res.status(200).json({ message: "Item updated successfully", id });
-//   } catch (error: any) {
-//     console.error("Error updating item:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
+     res.status(200).json({ message: "Item updated successfully", id });
+   } catch (error: any) {
+     console.error("Error updating item:", error);
+     res.status(500).json({ error: error.message });
+   }
+ };
 
 export const deleteItemHandler = async (
   req: AuthenticatedRequest,
