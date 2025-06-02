@@ -7,6 +7,7 @@ import itemRoutes from "./routes/itemRoutes";
 import invoiceRoutes from "./routes/invoiceRoutes";
 import chartsRoutes from "./routes/chartsRoutes";
 import authRoutes from "./routes/authRoutes";
+import logoutRoutes from "./routes/logoutRoutes";
 import { authenticateToken } from "./middleware/auth";
 import './config/firebase-admin'; // Initialize Firebase Admin SDK
 import cors from 'cors';
@@ -37,6 +38,7 @@ apiRouter.use("/branches", branchRoutes);
 apiRouter.use("/items", itemRoutes);
 apiRouter.use("/invoices", invoiceRoutes);
 apiRouter.use("/charts", chartsRoutes);
+apiRouter.use("/logout", logoutRoutes);
 
 // Mount the protected API router
 app.use("/api", apiRouter);

@@ -24,7 +24,7 @@ export const authenticateToken: RequestHandler = (req, res, next) => {
 
   const idToken = authHeader.split(" ")[1];
 
-  admin.auth().verifyIdToken(idToken)
+  admin.auth().verifyIdToken(idToken, true)
     .then(decodedToken => {
       if (!decodedToken.uid || !decodedToken.role) {
         res.status(401).json({ error: "Invalid token: Missing required claims" });
