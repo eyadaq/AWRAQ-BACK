@@ -2,7 +2,9 @@ import { Router, RequestHandler, Request, Response, NextFunction } from "express
 import { 
   createInvoiceHandler, 
   listInvoicesHandler,
-  getInvoiceByIdHandler
+  getInvoiceByIdHandler,
+  getInvoicePdf,
+  exportInvoicesToExcelHandler
 } from "../controllers/invoiceController";
 import { authenticateToken } from "../middleware/auth";
 
@@ -21,8 +23,10 @@ const asyncHandler = <P, ResBody, ReqBody, ReqQuery>(
 router.use(authenticateToken as RequestHandler);
 
 
+router.get("/excel", asyncHandler(exportInvoicesToExcelHandler));
+router.get("/pdf", asyncHandler(getInvoicePdf));
+router.get("/:id", asyncHandler(getInvoiceByIdHandler));
 router.get("/", asyncHandler(listInvoicesHandler));
 router.post("/", asyncHandler(createInvoiceHandler));
-router.get("/:id", asyncHandler(getInvoiceByIdHandler));
 
 export default router;
