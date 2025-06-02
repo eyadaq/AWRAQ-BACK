@@ -1,37 +1,7 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import admin from "firebase-admin";
 import db from "../firebs";
-
-interface UserData {
-  uid: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  branchId: string;
-  isDelete: boolean;
-  createdAt?: admin.firestore.Timestamp;
-  deletedAt?: admin.firestore.Timestamp;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    role: string;
-    branchId: string;
-  };
-}
-
-interface CreateUserRequest extends AuthenticatedRequest {
-  body: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    branchId: string;
-  };
-}
+import { AuthenticatedRequest, CreateUserRequest, UserData } from "../utils/interfaces";
 
 export const createUserHandler = async (
   req: CreateUserRequest,

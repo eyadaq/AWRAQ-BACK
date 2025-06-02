@@ -1,21 +1,6 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { auth, db } from '../config/firebase-client';
-
-interface UserData {
-  uid: string;
-  email: string;
-  role?: string;
-  branchId?: string;
-  username?: string;
-  [key: string]: any; // Allow additional properties
-}
-
-interface LoginRequest extends Request {
-  body: {
-    email: string;
-    password: string;
-  };
-}
+import { LoginRequest, UserData } from "../utils/interfaces";
 
 export const loginHandler = async (
   req: LoginRequest,
@@ -29,21 +14,16 @@ export const loginHandler = async (
   }
 
   try {
-    // Get user by email using Admin SDK
     const userRecord = await auth.getUserByEmail(email);
     
-    // Get additional user data from Firestore
     const userDoc = await db.collection('users').doc(userRecord.uid).get();
     const userData = userDoc.data() as UserData | undefined;
-    
-    // Verify password by trying to sign in with email/password
-    // This requires the Firebase Auth REST API
+
     const firebaseApiKey = process.env.FIREBASE_API_KEY;
     if (!firebaseApiKey) {
       throw new Error('Missing FIREBASE_API_KEY environment variable');
     }
-    
-    // Verify password using Firebase Auth REST API
+  
     const response = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`,
       {
@@ -71,7 +51,6 @@ export const loginHandler = async (
     
     const idToken = data.idToken;
 
-    // Set custom claims if needed
     if (userData?.role) {
       await auth.setCustomUserClaims(userRecord.uid, { 
         role: userData.role,

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 
-const serviceAccountPath = path.join(__dirname, '../../src/serviceAccountKey.json');
+const serviceAccountPath = path.join(__dirname, '../../serviceAccountKey.json');
 
 if (!fs.existsSync(serviceAccountPath)) {
   throw new Error('Firebase service account key file not found');

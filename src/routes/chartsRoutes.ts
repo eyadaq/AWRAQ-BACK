@@ -1,10 +1,9 @@
 import { Router, RequestHandler, Request, Response, NextFunction } from "express";
 import { 
-  createInvoiceHandler, 
-  listInvoicesHandler,
-  getInvoiceByIdHandler,
-  getInvoicePdf
-} from "../controllers/invoiceController";
+  getInvoicesSumByUserIdHandler,
+  getInvoicesSumByBranchIdHandler,
+  getInvoicesSumsByBranchUsersHandler
+} from "../controllers/chartsController";
 import { authenticateToken } from "../middleware/auth";
 
 const router = Router();
@@ -17,14 +16,11 @@ const asyncHandler = <P, ResBody, ReqBody, ReqQuery>(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-
 // Apply authentication middleware to all following routes
 router.use(authenticateToken as RequestHandler);
 
-
-router.get("/", asyncHandler(listInvoicesHandler));
-router.post("/", asyncHandler(createInvoiceHandler));
-router.get("/:id", asyncHandler(getInvoiceByIdHandler));
-router.get("/pdf", asyncHandler(getInvoicePdf));
+router.get("/userSums", asyncHandler(getInvoicesSumByUserIdHandler));
+router.get("/branchSums", asyncHandler(getInvoicesSumByBranchIdHandler));
+router.get("/branchUsersSums", asyncHandler(getInvoicesSumsByBranchUsersHandler));
 
 export default router;
