@@ -5,21 +5,28 @@ import userRoutes from "./routes/userRoutes";
 import branchRoutes from "./routes/branchRoutes";
 import itemRoutes from "./routes/itemRoutes";
 import invoiceRoutes from "./routes/invoiceRoutes";
-import chartsRoutes from "./routes/chartsRoutes";
 import authRoutes from "./routes/authRoutes";
-import logoutRoutes from "./routes/logoutRoutes";
 import { authenticateToken } from "./middleware/auth";
 import './config/firebase-admin'; // Initialize Firebase Admin SDK
 import cors from 'cors';
+import * as admin from 'firebase-admin';
 
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(), // or from cert
+  });
+}
+
+export const db = admin.firestore();
 const app: Express = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3300;
 
 // Middleware
 app.use(bodyParser.json());
 
+// ✅ Add this CORS middleware BEFORE your routes
 app.use(cors({
-  origin: 'http://localhost:3000', // Change this to your frontend URL in prod
+  origin: 'http://localhost:3000', // ✅ Change this to your frontend URL in prod
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // Optional: only needed if you're using cookies or auth headers
@@ -37,8 +44,6 @@ apiRouter.use("/users", userRoutes);
 apiRouter.use("/branches", branchRoutes);
 apiRouter.use("/items", itemRoutes);
 apiRouter.use("/invoices", invoiceRoutes);
-apiRouter.use("/charts", chartsRoutes);
-apiRouter.use("/logout", logoutRoutes);
 
 // Mount the protected API router
 app.use("/api", apiRouter);

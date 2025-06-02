@@ -2,8 +2,7 @@ import { Router, RequestHandler, Request, Response, NextFunction } from "express
 import { 
   createInvoiceHandler, 
   listInvoicesHandler,
-  getInvoiceByIdHandler,
-  getInvoicePdf
+  getInvoiceByIdHandler
 } from "../controllers/invoiceController";
 import { authenticateToken } from "../middleware/auth";
 
@@ -25,6 +24,5 @@ router.use(authenticateToken as RequestHandler);
 router.get("/", asyncHandler(listInvoicesHandler));
 router.post("/", asyncHandler(createInvoiceHandler));
 router.get("/:id", asyncHandler(getInvoiceByIdHandler));
-router.get("/pdf", asyncHandler(getInvoicePdf));
 
 export default router;
